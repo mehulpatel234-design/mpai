@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MPAI — My Personal AI</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #e8e8e8;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      width: 240px;
+      background: #111;
+      border-right: 1px solid #1e1e1e;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+
+    #logo-area {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid #1e1e1e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #logo-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #fff;
+      flex-shrink: 0;
+    }
+
+    #logo-text { font-weight: 700; font-size: 16px; color: #fff; }
+    #logo-sub { font-size: 11px; color: #555; margin-top: 1px; }
+
+    #nav {
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      color: #888;
+      width: 100%;
+      text-align: left;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover { background: #1a1a1a; color: #e8e8e8; }
+    .nav-btn.active { background: #1a1a2e; color: #818cf8; font-weight: 600; }
+
+    .nav-icon { font-size: 18px; width: 20px; text-align: center; }
+
+    .sidebar-section {
+      font-size: 10px;
+      color: #444;
+      padding: 12px 16px 6px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #notes-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 8px;
+    }
+
+    .note-item {
+      padding: 9px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      transition: background 0.1s;
+    }
+
+    .note-item:hover { background: #1a1a1a; }
+    .note-item-title { font-size: 13px; font-weight: 500; color: #ccc; margin-bottom: 2px; }
+    .note-item-preview { font-size: 11px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Main */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .tab-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .tab-panel.active { display: flex; }
+
+    /* Chat */
+    #chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      scroll-behavior: smooth;
+    }
+
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 10px;
+      padding-bottom: 60px;
+    }
+
+    #empty-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    #empty-title { font-size: 22px; font-weight: 700; color: #fff; }
+    #empty-sub { font-size: 14px; color: #555; }
+
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 16px;
+      max-width: 500px;
+    }
+
+    .suggestion-chip {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid #2a2a2a;
+      background: #111;
+      color: #888;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .suggestion-chip:hover { border-color: #6c63ff; color: #818cf8; background: #1a1a2e; }
+
+    .msg-wrap { display: flex; flex-direction: column; }
+    .msg-wrap.user { align-items: flex-end; }
+    .msg-wrap.assistant { align-items: flex-start; }
+
+    .msg-label {
+      font-size: 11px;
+      color: #444;
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .msg.user {
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant {
+      background: #181818;
+      color: #e8e8e8;
+      border: 1px solid #222;
+      border-bottom-left-radius: 4px;
+    }
+
+    .msg.thinking {
+      color: #555;
+      font-style: italic;
+    }
+
+    #chat-input-area {
+      padding: 16px 20px;
+      border-top: 1px solid #1a1a1a;
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: #0d0d0d;
+    }
+
+    #chat-input {
+      flex: 1;
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #e8e8e8;
+      resize: none;
+      outline: none;
+      font-family: inherit;
+      max-height: 120px;
+      line-height: 1.5;
+      transition: border-color 0.15s;
+    }
+
+    #chat-input:focus { border-color: #4f46e5; }
+    #chat-input::placeholder { color: #444; }
+
+    #send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+
+    #send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Notes */
+    #notes-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .notes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .notes-header h2 { font-size: 18px; font-weight: 700; color: #fff; }
+
+    #note-title {
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      background: #181818;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #note-title:focus { border-color: #4f46e5; }
+
+    #note-body {
+      flex: 1;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #181818;
+      color: #e8e8e8;
+      resize: none;
+      outline: none;
+      line-height: 1.7;
+      transition: border-color 0.15s;
+    }
+
+    #note-body:focus { border-color: #4f46e5; }
+
+    .notes-toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #2a2a2a;
+      background: #181818;
+      color: #ccc;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover { background: #222; color: #fff; }
+
+    .btn.primary {
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    .btn.primary:hover { opacity: 0.9; }
+
+    /* Search */
+    #search-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 14px;
+      overflow: hidden;
+    }
+
+    .search-header h2 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .search-header p { font-size: 13px; color: #555; }
+
+    #search-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    #search-input {
+      flex: 1;
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: #e8e8e8;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+
+    #search-input:focus { border-color: #4f46e5; }
+    #search-input::placeholder { color: #444; }
+
+    #search-btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #6c63ff, #4f46e5);
+      color: #fff;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+    }
+
+    #search-results {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .search-result-card {
+      background: #181818;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .search-result-card h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #818cf8;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-result-card p {
+      font-size: 14px;
+      color: #ccc;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .search-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 10px;
+      color: #444;
+    }
+
+    .search-empty .icon { font-size: 40px; }
+    .search-empty p { font-size: 14px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div id="sidebar">
+  <div id="logo-area">
+    <div id="logo-icon">M</div>
+    <div>
+      <div id="logo-text">MPAI</div>
+      <div id="logo-sub">My Personal AI</div>
+    </div>
+  </div>
+
+  <div id="nav">
+    <button class="nav-btn active" onclick="switchTab('chat')" id="nav-chat">
+      <span class="nav-icon">💬</span> Chat
+    </button>
+    <button class="nav-btn" onclick="switchTab('notes')" id="nav-notes">
+      <span class="nav-icon">📝</span> Notes
+    </button>
+    <button class="nav-btn" onclick="switchTab('search')" id="nav-search">
+      <span class="nav-icon">🔍</span> Web Search
+    </button>
+  </div>
+
+  <div class="sidebar-section">Saved Notes</div>
+  <div id="notes-list"></div>
+</div>
+
+<!-- Main content -->
+<div id="main">
+
+  <!-- Chat Tab -->
+  <div id="tab-chat" class="tab-panel active">
+    <div id="chat-messages">
+      <div id="empty-state">
+        <div id="empty-logo">M</div>
+        <div id="empty-title">Welcome to MPAI</div>
+        <div id="empty-sub">Your personal AI — ask me anything</div>
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="quickSend('Explain what a boiler safety valve does')">⚙️ Boiler safety valve</div>
+          <div class="suggestion-chip" onclick="quickSend('What are the TSSA requirements for 3rd Class engineers in Ontario?')">📋 TSSA requirements</div>
+          <div class="suggestion-chip" onclick="quickSend('Help me study for my 3rd Class Power Engineering exam')">📚 Exam help</div>
+          <div class="suggestion-chip" onclick="quickSend('What is the difference between gauge pressure and absolute pressure?')">🔬 Pressure concepts</div>
+        </div>
+      </div>
+    </div>
+    <div id="chat-input-area">
+      <textarea id="chat-input" placeholder="Message MPAI... (Enter to send, Shift+Enter for new line)" rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()" aria-label="Send">➤</button>
+    </div>
+  </div>
+
+  <!-- Notes Tab -->
+  <div id="tab-notes" class="tab-panel">
+    <div id="notes-area">
+      <div class="notes-header">
+        <h2>📝 My Notes</h2>
+      </div>
+      <input id="note-title" placeholder="Note title..." />
+      <textarea id="note-body" placeholder="Write your notes here..."></textarea>
+      <div class="notes-toolbar">
+        <button class="btn primary" onclick="saveNote()">💾 Save Note</button>
+        <button class="btn" onclick="newNote()">➕ New Note</button>
+        <button class="btn" onclick="askAboutNote()">✨ Ask AI About This</button>
+        <button class="btn" onclick="deleteNote()" style="color:#f87171">🗑️ Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Tab -->
+  <div id="tab-search" class="tab-panel">
+    <div id="search-area">
+      <div class="search-header">
+        <h2>🔍 Web Search</h2>
+        <p>Ask anything — Claude will search and give you an answer</p>
+      </div>
+      <div id="search-bar">
+        <input id="search-input" placeholder="What do you want to know?" />
+        <button id="search-btn" onclick="doSearch()">Search</button>
+      </div>
+      <div id="search-results">
+        <div class="search-empty">
+          <div class="icon">🌐</div>
+          <p>Type a question above to get started</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://xgznraivcjxrrkzwrbfe.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhnem5yYWl2Y2p4cnJrendyYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDYwMzQsImV4cCI6MjA5NzEyMjAzNH0.llxEYQgwk67bG0MlU6DJD6eed_mE0HOGcmQFudQsUWY';
+  const FN_URL = SUPABASE_URL + '/functions/v1/clever-service';
+
+  let chatHistory = [];
+  let notes = JSON.parse(localStorage.getItem('mpai_notes') || '[]');
+  let currentNoteIndex = 0;
+
+  if (notes.length === 0) {
+    notes = [
+      { title: '3rd Class Exam Prep', body: 'Power Engineering 3rd Class Notes\n\n• Boiler HP: 1 BHP = 33,475 BTU/hr\n• Safety valve must open at MAWP\n• TSSA requires annual inspection\n• Low water cutoff must be tested daily' },
+      { title: 'Boiler Safety Checklist', body: 'Daily Inspection:\n\n1. Check water level gauge\n2. Verify pressure is within limits\n3. Test low water cutoff\n4. Check burner operation\n5. Inspect safety valve\n6. Log all readings' }
+    ];
+    saveNotesToStorage();
+  }
+
+  renderNotesList();
+  loadNote(0);
+
+  // Tab switching
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('nav-' + tab).classList.add('active');
+  }
+
+  // Claude API call
+  async function callClaude(messages) {
+    const res = await fetch(FN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ messages })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'API error ' + res.status);
+    }
+    const data = await res.json();
+    return data.content?.[0]?.text || 'No response received.';
+  }
+
+  // Chat functions
+  function addMessage(role, text) {
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'msg-wrap ' + role;
+
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = role === 'user' ? 'You' : 'MPAI';
+
+    const msg = document.createElement('div');
+    msg.className = 'msg ' + role;
+    msg.textContent = text;
+
+    wrap.appendChild(label);
+    wrap.appendChild(msg);
+    document.getElementById('chat-messages').appendChild(wrap);
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    return msg;
+  }
+
+  async function sendMessage() {
+    const inp = document.getElementById('chat-input');
+    const text = inp.value.trim();
+    if (!text) return;
+
+    inp.value = '';
+    inp.style.height = 'auto';
+    document.getElementById('send-btn').disabled = true;
+
+    addMessage('user', text);
+    chatHistory.push({ role: 'user', content: text });
+
+    const thinking = addMessage('assistant', 'Thinking...');
+    thinking.classList.add('thinking');
+
+    try {
+      const reply = await callClaude(chatHistory);
+      thinking.textContent = reply;
+      thinking.classList.remove('thinking');
+      chatHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      thinking.textContent = '⚠️ Error: ' + e.message;
+      thinking.classList.remove('thinking');
+    }
+
+    document.getElementById('send-btn').disabled = false;
+    inp.focus();
+  }
+
+  function quickSend(text) {
+    document.getElementById('chat-input').value = text;
+    sendMessage();
+  }
+
+  document.getElementById('chat-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  document.getElementById('chat-input').addEventListener('input', function () {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  // Notes functions
+  function renderNotesList() {
+    document.getElementById('notes-list').innerHTML = notes.map((n, i) => `
+      <div class="note-item" onclick="loadNote(${i})">
+        <div class="note-item-title">${n.title || 'Untitled'}</div>
+        <div class="note-item-preview">${(n.body || '').substring(0, 50)}...</div>
+      </div>
+    `).join('');
+  }
+
+  function loadNote(i) {
+    if (i < 0 || i >= notes.length) return;
+    currentNoteIndex = i;
+    document.getElementById('note-title').value = notes[i].title || '';
+    document.getElementById('note-body').value = notes[i].body || '';
+  }
+
+  function saveNote() {
+    notes[currentNoteIndex] = {
+      title: document.getElementById('note-title').value || 'Untitled',
+      body: document.getElementById('note-body').value
+    };
+    saveNotesToStorage();
+    renderNotesList();
+    const btn = document.querySelector('.btn.primary');
+    btn.textContent = '✅ Saved!';
+    setTimeout(() => { btn.textContent = '💾 Save Note'; }, 1500);
+  }
+
+  function newNote() {
+    notes.push({ title: 'New Note', body: '' });
+    currentNoteIndex = notes.length - 1;
+    saveNotesToStorage();
+    renderNotesList();
+    loadNote(currentNoteIndex);
+    switchTab('notes');
+    document.getElementById('note-title').focus();
+  }
+
+  function deleteNote() {
+    if (notes.length <= 1) { alert('Keep at least one note!'); return; }
+    notes.splice(currentNoteIndex, 1);
+    currentNoteIndex = Math.max(0, currentNoteIndex - 1);
+    saveNotesToStorage();
+    renderNotesList();
+    loadNote(currentNoteIndex);
+  }
+
+  async function askAboutNote() {
+    const title = document.getElementById('note-title').value;
+    const body = document.getElementById('note-body').value;
+    const prompt = `Here are my notes titled "${title}":\n\n${body}\n\nPlease help me understand, expand on, or summarise these notes.`;
+
+    switchTab('chat');
+    addMessage('user', `Asking AI about my note: "${title}"`);
+    chatHistory.push({ role: 'user', content: prompt });
+
+    const thinking = addMessage('assistant', 'Thinking...');
+    thinking.classList.add('thinking');
+    document.getElementById('send-btn').disabled = true;
+
+    try {
+      const reply = await callClaude(chatHistory);
+      thinking.textContent = reply;
+      thinking.classList.remove('thinking');
+      chatHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      thinking.textContent = '⚠️ Error: ' + e.message;
+      thinking.classList.remove('thinking');
+    }
+    document.getElementById('send-btn').disabled = false;
+  }
+
+  function saveNotesToStorage() {
+    localStorage.setItem('mpai_notes', JSON.stringify(notes));
+  }
+
+  // Search
+  async function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) return;
+
+    const results = document.getElementById('search-results');
+    results.innerHTML = '<div class="search-empty"><div class="icon">⏳</div><p>Searching and summarising...</p></div>';
+
+    const searchMessages = [{
+      role: 'user',
+      content: `You are a helpful research assistant. Please answer this question clearly and in detail: "${q}"\n\nProvide a comprehensive answer with key facts, context, and any important details.`
+    }];
+
+    try {
+      const reply = await callClaude(searchMessages);
+      results.innerHTML = `
+        <div class="search-result-card">
+          <h3>✨ AI Answer for: ${q}</h3>
+          <p>${reply}</p>
+        </div>
+        <div style="font-size:11px;color:#333;text-align:center;padding:8px">
+          Powered by Claude AI via MPAI
+        </div>
+      `;
+    } catch (e) {
+      results.innerHTML = `<div class="search-empty"><div class="icon">⚠️</div><p>Error: ${e.message}</p></div>`;
+    }
+  }
+
+  document.getElementById('search-input').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doSearch();
+  });
+</script>
+</body>
+</html>
