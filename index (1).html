@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<title>MPAI</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black"/>
+<meta name="apple-mobile-web-app-title" content="MPAI"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0d0d0d;--surface:#141414;--surface2:#1c1c1c;--surface3:#242424;
+--border:#2a2a2a;--border2:#383838;
+--text:#ececec;--text2:#999;--text3:#555;
+--purple:#7c3aed;--purple2:#6d28d9;--purple-l:#a78bfa;
+--user-bg:#2d1b69;--user-text:#e9d5ff;
+--code-bg:#1a1b26;--green:#22c55e;--red:#ef4444;
+--radius:12px;--transition:0.15s ease;
+}
+[data-theme="light"]{
+--bg:#f7f7f7;--surface:#fff;--surface2:#f0f0f0;--surface3:#e8e8e8;
+--border:#e0e0e0;--border2:#ccc;
+--text:#111;--text2:#666;--text3:#aaa;
+--user-bg:#7c3aed;--user-text:#fff;
+--code-bg:#1e2030;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:15px}
+#app{display:flex;height:100vh;height:100dvh}
+
+/* SIDEBAR */
+#sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width var(--transition)}
+#sb-top{padding:14px 12px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+#sb-logo{display:flex;align-items:center;gap:9px;margin-bottom:12px}
+#sb-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;flex-shrink:0}
+#sb-name{font-weight:700;font-size:15px;color:var(--text)}
+#sb-tagline{font-size:11px;color:var(--text3)}
+#new-chat-btn{width:100%;padding:9px 12px;border-radius:var(--radius);border:1px dashed var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:8px;transition:all var(--transition)}
+#new-chat-btn:hover{border-color:var(--purple);color:var(--purple-l);background:rgba(124,58,237,0.08)}
+#search-wrap{padding:8px 12px;flex-shrink:0}
+#conv-search{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border var(--transition)}
+#conv-search:focus{border-color:var(--purple)}
+#conv-search::placeholder{color:var(--text3)}
+.sb-section{font-size:10px;color:var(--text3);padding:8px 14px 4px;letter-spacing:.08em;text-transform:uppercase}
+#conv-list{flex:1;overflow-y:auto;padding:4px 8px}
+.conv-item{padding:9px 10px;border-radius:9px;cursor:pointer;margin-bottom:1px;font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all var(--transition);display:flex;align-items:center;gap:7px}
+.conv-item:hover{background:var(--surface2);color:var(--text)}
+.conv-item.active{background:rgba(124,58,237,0.12);color:var(--purple-l)}
+.conv-item .ci{font-size:12px;flex-shrink:0}
+#sb-bottom{padding:10px 12px;border-top:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;gap:6px}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;width:100%;transition:all var(--transition)}
+.sb-btn:hover{background:var(--surface2);color:var(--text)}
+.sb-btn.active{background:rgba(124,58,237,0.12);color:var(--purple-l)}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--bg)}
+#main-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--surface)}
+#header-title{font-weight:600;font-size:15px;color:var(--text);flex:1}
+#model-sel{padding:5px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text2);font-size:12px;font-family:inherit;cursor:pointer;outline:none}
+.hdr-btn{width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text2);transition:all var(--transition)}
+.hdr-btn:hover{background:var(--surface2);color:var(--text)}
+
+.tab{display:none;flex:1;flex-direction:column;overflow:hidden}
+.tab.active{display:flex}
+
+/* CHAT */
+#chat-msgs{flex:1;overflow-y:auto;padding:20px 0;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+#chat-msgs::-webkit-scrollbar{width:4px}
+#chat-msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.msg-row{padding:3px 20px;max-width:800px;width:100%;margin:0 auto}
+
+/* Empty state */
+#empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:20px;text-align:center}
+#empty-logo{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,var(--purple),var(--purple2));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:12px}
+#empty-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:6px}
+#empty-sub{font-size:14px;color:var(--text3);margin-bottom:20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px}
+.chip{padding:9px 14px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;transition:all var(--transition);font-family:inherit}
+.chip:hover,.chip:active{border-color:var(--purple);color:var(--purple-l);background:rgba(124,58,237,0.08)}
+
+/* User message */
+.user-row{display:flex;justify-content:flex-end;padding:3px 20px;max-width:800px;width:100%;margin:0 auto}
+.user-msg{background:var(--user-bg);color:var(--user-text);padding:10px 15px;border-radius:18px 18px 4px 18px;max-width:70%;font-size:15px;line-height:1.55;word-break:break-word;white-space:pre-wrap;position:relative}
+.user-msg:hover .msg-actions{opacity:1}
+
+/* AI message */
+.ai-row{display:flex;align-items:flex-start;gap:10px;padding:4px 20px;max-width:800px;width:100%;margin:0 auto;position:relative}
+.ai-row:hover .msg-actions{opacity:1}
+.ai-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--purple),var(--purple2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;margin-top:2px}
+.ai-content{flex:1;font-size:15px;line-height:1.7;color:var(--text);min-width:0}
+.ai-content p{margin:6px 0}
+.ai-content p:first-child{margin-top:0}
+.ai-content h1,.ai-content h2,.ai-content h3{margin:14px 0 7px;font-weight:600}
+.ai-content h1{font-size:1.35em}.ai-content h2{font-size:1.15em}.ai-content h3{font-size:1.05em}
+.ai-content ul,.ai-content ol{margin:7px 0;padding-left:22px}
+.ai-content li{margin:3px 0}
+.ai-content blockquote{border-left:3px solid var(--purple);margin:10px 0;padding:4px 12px;color:var(--text2)}
+.ai-content table{border-collapse:collapse;margin:10px 0;width:100%;font-size:14px}
+.ai-content th,.ai-content td{border:1px solid var(--border2);padding:7px 11px;text-align:left}
+.ai-content th{background:var(--surface2);font-weight:600}
+.ai-content a{color:var(--purple-l);text-decoration:underline}
+.ai-content code:not(pre code){background:var(--surface3);padding:2px 6px;border-radius:5px;font-family:'SF Mono',Monaco,Consolas,monospace;font-size:.85em;color:var(--purple-l)}
+.ai-content pre{margin:10px 0;border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:var(--surface3);border-bottom:1px solid var(--border)}
+.code-lang{font-size:11px;color:var(--text3);font-family:monospace}
+.code-copy-btn{font-size:12px;color:var(--text3);background:none;border:1px solid var(--border2);cursor:pointer;padding:3px 9px;border-radius:5px;font-family:inherit;transition:all var(--transition)}
+.code-copy-btn:hover{background:var(--surface2);color:var(--text)}
+.ai-content pre code{display:block;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.65;font-family:'SF Mono',Monaco,Consolas,monospace}
+.ai-content strong{font-weight:600;color:var(--text)}
+.ai-content hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+
+/* Thinking dots */
+.thinking-dots{display:flex;align-items:center;gap:4px;padding:4px 0}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--text3);animation:dotpulse 1.4s infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes dotpulse{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+
+/* Message actions */
+.msg-actions{opacity:0;transition:opacity var(--transition);display:flex;gap:3px;margin-top:5px}
+.ma-btn{padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text3);font-size:11px;cursor:pointer;font-family:inherit;transition:all var(--transition);display:flex;align-items:center;gap:4px}
+.ma-btn:hover{border-color:var(--border2);color:var(--text);background:var(--surface2)}
+
+/* INPUT AREA */
+#input-wrap{padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--border);flex-shrink:0}
+#input-box{max-width:800px;margin:0 auto;background:var(--surface);border:1px solid var(--border2);border-radius:16px;overflow:hidden;transition:border-color var(--transition)}
+#input-box:focus-within{border-color:var(--purple)}
+#img-preview-bar{padding:10px 12px 0;display:none;position:relative}
+#img-preview-bar img{max-height:80px;max-width:120px;border-radius:8px;border:1px solid var(--border2)}
+#remove-img{position:absolute;top:6px;left:116px;width:18px;height:18px;border-radius:50%;background:var(--red);border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#main-textarea{width:100%;border:none;background:transparent;padding:13px 14px 8px;font-size:15px;color:var(--text);font-family:inherit;resize:none;outline:none;min-height:46px;max-height:160px;line-height:1.5}
+#main-textarea::placeholder{color:var(--text3)}
+#input-actions{display:flex;align-items:center;justify-content:space-between;padding:6px 8px}
+.ia-left,.ia-right{display:flex;gap:3px;align-items:center}
+.ia-btn{width:34px;height:34px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text2);transition:all var(--transition);-webkit-tap-highlight-color:transparent}
+.ia-btn:hover{background:var(--surface2);color:var(--text)}
+#send-btn{background:var(--purple);color:#fff;width:34px;height:34px;border-radius:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all var(--transition)}
+#send-btn:hover:not(:disabled){background:var(--purple2)}
+#send-btn:disabled{opacity:.35;cursor:not-allowed;background:var(--border2)}
+.recording{background:var(--red)!important;animation:rec 1s infinite}
+@keyframes rec{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* NOTES */
+#notes-area{flex:1;display:flex;flex-direction:column;padding:16px;gap:10px;overflow:hidden;max-width:800px;width:100%;margin:0 auto}
+#ntitle{border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600;font-family:inherit;background:var(--surface);color:var(--text);outline:none;-webkit-appearance:none;flex-shrink:0}
+#ntitle:focus{border-color:var(--purple)}
+#nbody{flex:1;border:1px solid var(--border2);border-radius:10px;padding:12px 14px;font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);resize:none;outline:none;line-height:1.7;-webkit-appearance:none}
+#nbody:focus{border-color:var(--purple)}
+.tb{display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0}
+.btn{padding:9px 14px;border-radius:9px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;transition:all var(--transition);display:flex;align-items:center;gap:6px}
+.btn:hover,.btn:active{background:var(--surface2);color:var(--text)}
+.btn.pri{background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;border-color:transparent}
+
+/* SEARCH */
+#search-area{flex:1;display:flex;flex-direction:column;padding:20px;gap:14px;overflow:hidden;max-width:800px;width:100%;margin:0 auto}
+.shdr h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:3px}
+.shdr p{font-size:13px;color:var(--text3)}
+#sbar{display:flex;gap:8px}
+#sinput{flex:1;background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;font-size:15px;color:var(--text);outline:none;font-family:inherit}
+#sinput:focus{border-color:var(--purple)}
+#sinput::placeholder{color:var(--text3)}
+#sbtn{padding:12px 18px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--purple),var(--purple2));color:#fff;font-size:14px;cursor:pointer;font-family:inherit;font-weight:600}
+#sresults{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.rc h3{font-size:13px;font-weight:600;color:var(--purple-l);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rc .rc-body{font-size:14px;color:var(--text);line-height:1.75;white-space:pre-wrap}
+.se{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:8px;color:var(--text3);text-align:center}
+.se .ic{font-size:38px}
+
+/* BOTTOM NAV */
+#bnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom);z-index:100}
+.bni{display:flex;height:58px}
+.bb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:none;background:transparent;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit;-webkit-tap-highlight-color:transparent;transition:color var(--transition)}
+.bb .ic{font-size:22px}
+.bb.active{color:var(--purple-l)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* MOBILE */
+@media(max-width:768px){
+  #sidebar{display:none}
+  #bnav{display:flex}
+  #tab-chat,#tab-notes,#tab-search{padding-bottom:calc(58px + env(safe-area-inset-bottom))}
+  #input-wrap{padding-bottom:calc(58px + env(safe-area-inset-bottom) + 8px)}
+  .user-msg{max-width:85%}
+  .ai-row,.user-row,.msg-row{padding:3px 12px}
+  #notes-area,#search-area{padding:12px}
+  #empty-state{padding:16px 16px 80px}
+}
+@media(min-width:769px){
+  #tab-notes{align-items:center}
+  #tab-search{align-items:center}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="sb-top">
+    <div id="sb-logo">
+      <div id="sb-icon">M</div>
+      <div><div id="sb-name">MPAI</div><div id="sb-tagline">My Personal AI</div></div>
+    </div>
+    <button id="new-chat-btn" onclick="newConv()">➕ New conversation</button>
+  </div>
+  <div id="search-wrap">
+    <input id="conv-search" placeholder="🔍 Search conversations..." oninput="filterConvs(this.value)" />
+  </div>
+  <div class="sb-section">Recent</div>
+  <div id="conv-list"></div>
+  <div id="sb-bottom">
+    <button class="sb-btn active" onclick="switchTab('chat')" id="sbn-chat">💬 Chat</button>
+    <button class="sb-btn" onclick="switchTab('notes')" id="sbn-notes">📝 Notes</button>
+    <button class="sb-btn" onclick="switchTab('search')" id="sbn-search">🔍 Web Search</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="main-header">
+    <div id="header-title">MPAI</div>
+    <select id="model-sel" onchange="setModel(this.value)" title="Model">
+      <option value="claude-haiku-4-5-20251001">Haiku — Fast</option>
+      <option value="claude-sonnet-4-6">Sonnet — Smart</option>
+    </select>
+    <button class="hdr-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-btn">🌙</button>
+    <button class="hdr-btn" onclick="clearChat()" title="Clear chat">🗑️</button>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div id="tab-chat" class="tab active">
+    <div id="chat-msgs">
+      <div id="empty-state">
+        <div id="empty-logo">M</div>
+        <div id="empty-title">Welcome to MPAI</div>
+        <div id="empty-sub">Hi Mehul! What can I help you with today?</div>
+        <div class="chips">
+          <button class="chip" onclick="quickSend('What should I study for my 3rd Class Power Engineering exam?')">📚 3rd Class exam prep</button>
+          <button class="chip" onclick="quickSend('Explain how a steam boiler safety valve works')">⚙️ Safety valve</button>
+          <button class="chip" onclick="quickSend('What are TSSA requirements for Power Engineers in Ontario?')">📋 TSSA rules</button>
+          <button class="chip" onclick="quickSend('Explain the difference between gauge pressure and absolute pressure')">🔬 Pressure types</button>
+          <button class="chip" onclick="quickSend('Write me a study schedule for my 3rd Class exam')">📅 Study schedule</button>
+          <button class="chip" onclick="quickSend('What are the main boiler fittings and their purposes?')">🔧 Boiler fittings</button>
+        </div>
+      </div>
+    </div>
+    <div id="input-wrap">
+      <div id="input-box">
+        <div id="img-preview-bar">
+          <img id="img-preview-img" src="" alt="preview"/>
+          <button id="remove-img" onclick="removeImg()">×</button>
+        </div>
+        <textarea id="main-textarea" placeholder="Message MPAI..." rows="1"></textarea>
+        <div id="input-actions">
+          <div class="ia-left">
+            <button class="ia-btn" onclick="document.getElementById('img-input').click()" title="Attach image">📎</button>
+            <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleImg(event)"/>
+            <button class="ia-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
+          </div>
+          <div class="ia-right">
+            <button id="send-btn" onclick="sendMsg()" disabled aria-label="Send">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTES TAB -->
+  <div id="tab-notes" class="tab">
+    <div id="notes-area">
+      <input id="ntitle" placeholder="Note title..." />
+      <textarea id="nbody" placeholder="Write your notes here..."></textarea>
+      <div class="tb">
+        <button class="btn pri" onclick="saveNote()">💾 Save</button>
+        <button class="btn" onclick="newNote()">➕ New</button>
+        <button class="btn" onclick="askNote()">✨ Ask AI</button>
+        <button class="btn" onclick="delNote()" style="color:#f87171">🗑️ Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH TAB -->
+  <div id="tab-search" class="tab">
+    <div id="search-area">
+      <div class="shdr"><h2>🔍 Web Search</h2><p>Ask anything — Claude will find the answer</p></div>
+      <div id="sbar">
+        <input id="sinput" placeholder="What do you want to know?"/>
+        <button id="sbtn" onclick="doSearch()">Search</button>
+      </div>
+      <div id="sresults"><div class="se"><div class="ic">🌐</div><p>Type a question to get started</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<div id="bnav">
+  <div class="bni">
+    <button class="bb active" onclick="switchTab('chat')" id="bn-chat"><span class="ic">💬</span><span>Chat</span></button>
+    <button class="bb" onclick="switchTab('notes')" id="bn-notes"><span class="ic">📝</span><span>Notes</span></button>
+    <button class="bb" onclick="switchTab('search')" id="bn-search"><span class="ic">🔍</span><span>Search</span></button>
+  </div>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+// ── CONFIG ──
+const SB='https://xgznraivcjxrrkzwrbfe.supabase.co';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhnem5yYWl2Y2p4cnJrendyYmZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDYwMzQsImV4cCI6MjA5NzEyMjAzNH0.llxEYQgwk67bG0MlU6DJD6eed_mE0HOGcmQFudQsUWY';
+const FN=SB+'/functions/v1/clever-service';
+const SBH={'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,'Prefer':'return=representation'};
+
+// ── PERSONAL SYSTEM PROMPT ──
+const CTX=[
+  {role:'user',content:"You are MPAI, Mehul's personal AI assistant. Mehul is a 4th Class Power Engineer in Toronto, Canada, studying for his 3rd Class certification. He works with boilers, steam systems, pressure vessels and follows TSSA regulations in Ontario. Be his helpful, friendly personal assistant. Give clear, practical answers. Keep his engineering background in mind when relevant. You can also see images he shares with you."},
+  {role:'assistant',content:"Got it! I'm MPAI, your personal AI Mehul. I know your background as a Power Engineer in Toronto working toward your 3rd Class, and I'll always give you clear, practical help. What's on your mind? 💪"}
+];
+
+// ── STATE ──
+let hist=[],convId=null,notes=[],noteId=null,allConvs=[],curModel='claude-haiku-4-5-20251001',attachedImg=null,isListening=false,lastAiEl=null;
+
+// ── MARKDOWN ──
+marked.setOptions({
+  highlight:(code,lang)=>{
+    if(lang&&hljs.getLanguage(lang))return hljs.highlight(code,{language:lang}).value;
+    return hljs.highlightAuto(code).value;
+  },
+  breaks:true,gfm:true
+});
+
+function renderMd(text){
+  const raw=marked.parse(text||'');
+  const div=document.createElement('div');div.innerHTML=raw;
+  div.querySelectorAll('pre').forEach(pre=>{
+    const code=pre.querySelector('code');
+    const lang=(code&&code.className.replace('language-','').replace('hljs ','').trim())||'';
+    const hdr=document.createElement('div');hdr.className='code-header';
+    hdr.innerHTML=`<span class="code-lang">${lang||'code'}</span><button class="code-copy-btn" onclick="copyCode(this)">Copy</button>`;
+    pre.insertBefore(hdr,pre.firstChild);
+  });
+  return div.innerHTML;
+}
+
+function copyCode(btn){
+  const code=btn.closest('pre').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',1500);});
+}
+
+// ── TABS ──
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.sb-btn,.bb').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  ['sbn-'+t,'bn-'+t].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.add('active');});
+}
+
+// ── THEME ──
+function toggleTheme(){
+  const html=document.documentElement;
+  const isLight=html.dataset.theme==='light';
+  html.dataset.theme=isLight?'dark':'light';
+  document.getElementById('theme-btn').textContent=isLight?'🌙':'☀️';
+  document.querySelector('meta[name="theme-color"]').content=isLight?'#0a0a0a':'#f7f7f7';
+}
+
+// ── MODEL ──
+function setModel(m){curModel=m;}
+
+// ── CLAUDE API ──
+async function callClaude(msgs){
+  const r=await fetch(FN,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},
+    body:JSON.stringify({messages:[...CTX,...msgs],model:curModel})
+  });
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'Error '+r.status);}
+  const d=await r.json();return d.content?.[0]?.text||'No response.';
+}
+
+// ── CHAT ──
+function addUserMsg(content,imgPreview){
+  const empty=document.getElementById('empty-state');if(empty)empty.remove();
+  const row=document.createElement('div');row.className='user-row';
+  let html=`<div class="user-msg">`;
+  if(imgPreview)html+=`<img src="${imgPreview}" style="max-width:200px;max-height:150px;border-radius:8px;display:block;margin-bottom:6px"/>`;
+  html+=`${escHtml(typeof content==='string'?content:(content.find?.(x=>x.type==='text')?.text||''))}</div>`;
+  row.innerHTML=html;
+  document.getElementById('chat-msgs').appendChild(row);
+  row.scrollIntoView({behavior:'smooth',block:'end'});
+}
+
+function addAiMsg(text,isThinking){
+  const empty=document.getElementById('empty-state');if(empty)empty.remove();
+  const row=document.createElement('div');row.className='ai-row';
+  const avatar=document.createElement('div');avatar.className='ai-avatar';avatar.textContent='M';
+  const content=document.createElement('div');content.className='ai-content';
+  if(isThinking){content.innerHTML='<div class="thinking-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';}
+  else{content.innerHTML=renderMd(text);addMsgActions(row,text);}
+  row.appendChild(avatar);row.appendChild(content);
+  document.getElementById('chat-msgs').appendChild(row);
+  row.scrollIntoView({behavior:'smooth',block:'end'});
+  lastAiEl={row,content};
+  return content;
+}
+
+function addMsgActions(row,text){
+  const actions=document.createElement('div');actions.className='msg-actions';
+  actions.innerHTML=`<button class="ma-btn" onclick="copyMsg(this,'${encodeURIComponent(text)}')">📋 Copy</button><button class="ma-btn" onclick="regenLast()">🔄 Regenerate</button>`;
+  row.appendChild(actions);
+}
+
+function copyMsg(btn,encoded){
+  navigator.clipboard.writeText(decodeURIComponent(encoded)).then(()=>{btn.textContent='✅ Copied';setTimeout(()=>btn.textContent='📋 Copy',1500);});
+}
+
+async function regenLast(){
+  if(hist.length<2)return;
+  if(hist[hist.length-1].role==='assistant')hist.pop();
+  if(lastAiEl){lastAiEl.row.remove();lastAiEl=null;}
+  document.getElementById('send-btn').disabled=true;
+  const thinking=addAiMsg('',true);
+  try{
+    const rep=await callClaude(hist);
+    thinking.innerHTML=renderMd(rep);
+    addMsgActions(lastAiEl.row,rep);
+    hist.push({role:'assistant',content:rep});
+    if(convId)sbq('POST','/rest/v1/messages',{conversation_id:convId,role:'assistant',content:rep});
+  }catch(e){thinking.textContent='⚠️ '+e.message;}
+  document.getElementById('send-btn').disabled=false;
+}
+
+function showWelcome(){
+  document.getElementById('chat-msgs').innerHTML=`<div id="empty-state"><div id="empty-logo">M</div><div id="empty-title">Welcome to MPAI</div><div id="empty-sub">Hi Mehul! What can I help you with today?</div><div class="chips"><button class="chip" onclick="quickSend('What should I study for my 3rd Class Power Engineering exam?')">📚 3rd Class exam prep</button><button class="chip" onclick="quickSend('Explain how a steam boiler safety valve works')">⚙️ Safety valve</button><button class="chip" onclick="quickSend('What are TSSA requirements for Power Engineers in Ontario?')">📋 TSSA rules</button><button class="chip" onclick="quickSend('Explain the difference between gauge pressure and absolute pressure')">🔬 Pressure types</button><button class="chip" onclick="quickSend('Write me a study schedule for my 3rd Class exam')">📅 Study schedule</button><button class="chip" onclick="quickSend('What are the main boiler fittings and their purposes?')">🔧 Boiler fittings</button></div></div>`;
+}
+
+async function sendMsg(){
+  const ta=document.getElementById('main-textarea');
+  const text=ta.value.trim();
+  if(!text&&!attachedImg)return;
+  ta.value='';ta.style.height='auto';
+  document.getElementById('send-btn').disabled=true;
+
+  let msgContent;
+  let previewSrc=null;
+  if(attachedImg){
+    previewSrc=attachedImg.preview;
+    msgContent=[{type:'image',source:{type:'base64',media_type:attachedImg.mediaType,data:attachedImg.base64}},{type:'text',text:text||'What do you see in this image?'}];
+    removeImg();
+  }else{msgContent=text;}
+
+  addUserMsg(msgContent,previewSrc);
+  hist.push({role:'user',content:msgContent});
+
+  const textForDb=typeof msgContent==='string'?msgContent:(msgContent.find(x=>x.type==='text')?.text||'[image]');
+  if(convId){
+    sbq('POST','/rest/v1/messages',{conversation_id:convId,role:'user',content:textForDb});
+    if(hist.length===1)updTitle(convId,textForDb.substring(0,40));
+  }
+
+  const thinkEl=addAiMsg('',true);
+  try{
+    const rep=await callClaude(hist);
+    thinkEl.innerHTML=renderMd(rep);
+    addMsgActions(lastAiEl.row,rep);
+    hist.push({role:'assistant',content:rep});
+    if(convId)sbq('POST','/rest/v1/messages',{conversation_id:convId,role:'assistant',content:rep});
+  }catch(e){thinkEl.textContent='⚠️ '+e.message;}
+  document.getElementById('send-btn').disabled=false;
+  ta.focus();
+}
+
+function quickSend(t){document.getElementById('main-textarea').value=t;updateSendBtn();sendMsg();}
+function clearChat(){hist=[];showWelcome();lastAiEl=null;}
+
+function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ── TEXTAREA ──
+const ta=document.getElementById('main-textarea');
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+ta.addEventListener('input',function(){
+  this.style.height='auto';this.style.height=Math.min(this.scrollHeight,160)+'px';
+  updateSendBtn();
+});
+function updateSendBtn(){document.getElementById('send-btn').disabled=!ta.value.trim()&&!attachedImg;}
+
+// ── VOICE INPUT ──
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let recog=null;
+if(SR){recog=new SR();recog.continuous=false;recog.interimResults=false;recog.lang='en-US';
+  recog.onresult=e=>{const t=e.results[0][0].transcript;ta.value+=(ta.value?' ':'')+t;updateSendBtn();stopVoice();};
+  recog.onerror=()=>stopVoice();recog.onend=()=>stopVoice();}
+
+function toggleVoice(){if(!recog){alert('Voice not supported in this browser');return;}isListening?stopVoice():startVoice();}
+function startVoice(){recog.start();isListening=true;document.getElementById('voice-btn').classList.add('recording');document.getElementById('voice-btn').textContent='🔴';}
+function stopVoice(){if(recog)try{recog.stop();}catch(e){}isListening=false;const b=document.getElementById('voice-btn');b.classList.remove('recording');b.textContent='🎤';}
+
+// ── IMAGE UPLOAD ──
+function handleImg(e){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const data=ev.target.result;
+    attachedImg={base64:data.split(',')[1],mediaType:file.type,preview:data};
+    const bar=document.getElementById('img-preview-bar');
+    document.getElementById('img-preview-img').src=data;
+    bar.style.display='block';
+    updateSendBtn();
+  };
+  reader.readAsDataURL(file);
+}
+function removeImg(){
+  attachedImg=null;
+  document.getElementById('img-preview-bar').style.display='none';
+  document.getElementById('img-input').value='';
+  updateSendBtn();
+}
+
+// ── CONVERSATIONS ──
+async function newConv(){
+  hist=[];showWelcome();lastAiEl=null;
+  try{const d=await sbq('POST','/rest/v1/conversations',{title:'New Chat'});convId=Array.isArray(d)?d[0]?.id:d?.id;loadConvs();}
+  catch(e){convId=null;}
+  switchTab('chat');document.getElementById('header-title').textContent='MPAI';
+}
+
+async function loadConvs(){
+  try{
+    const r=await fetch(SB+'/rest/v1/conversations?select=*&order=created_at.desc&limit=50',{headers:SBH});
+    allConvs=await r.json();if(!Array.isArray(allConvs))allConvs=[];
+    renderConvList(allConvs);
+  }catch(e){}
+}
+
+function renderConvList(convs){
+  document.getElementById('conv-list').innerHTML=convs.map(c=>`
+    <div class="conv-item ${c.id===convId?'active':''}" onclick="loadConv('${c.id}','${escHtml(c.title||'New Chat')}')">
+      <span class="ci">💬</span>${escHtml(c.title||'New Chat')}
+    </div>`).join('');
+}
+
+function filterConvs(q){
+  if(!q)return renderConvList(allConvs);
+  renderConvList(allConvs.filter(c=>(c.title||'').toLowerCase().includes(q.toLowerCase())));
+}
+
+async function loadConv(id,title){
+  convId=id;hist=[];lastAiEl=null;
+  document.getElementById('header-title').textContent=title||'MPAI';
+  try{
+    const r=await fetch(SB+`/rest/v1/messages?conversation_id=eq.${id}&select=*&order=created_at.asc`,{headers:SBH});
+    const ms=await r.json();document.getElementById('chat-msgs').innerHTML='';
+    if(!Array.isArray(ms)||ms.length===0){showWelcome();return;}
+    ms.forEach(m=>{
+      if(m.role==='user')addUserMsg(m.content);
+      else addAiMsg(m.content,false);
+      hist.push({role:m.role,content:m.content});
+    });
+  }catch(e){}
+  loadConvs();switchTab('chat');
+}
+
+async function updTitle(id,t){try{await sbq('PATCH',`/rest/v1/conversations?id=eq.${id}`,{title:t});loadConvs();}catch(e){}}
+
+// ── NOTES ──
+async function loadNotes(){
+  try{
+    const r=await fetch(SB+'/rest/v1/notes?select=*&order=updated_at.desc',{headers:SBH});
+    notes=await r.json();if(!Array.isArray(notes))notes=[];
+    if(notes.length===0){
+      await mkNote('3rd Class Exam Prep','Power Engineering 3rd Class\n\n• 1 BHP = 33,475 BTU/hr\n• Safety valve opens at MAWP\n• TSSA annual inspection required\n• Low water cutoff tested daily\n• Fusible plug protects crown sheet');
+      await mkNote('Boiler Safety Checklist','Daily Inspection:\n\n1. Check water level gauge\n2. Verify pressure within limits\n3. Test low water cutoff\n4. Check burner operation\n5. Inspect safety valve\n6. Check all gauges\n7. Log all readings');
+      return;
+    }
+    if(notes.length>0)loadNoteEd(notes[0]);
+  }catch(e){}
+}
+
+async function mkNote(title,body){
+  try{const d=await sbq('POST','/rest/v1/notes',{title,body});const n=Array.isArray(d)?d[0]:d;if(n?.id){notes.unshift(n);loadNoteEd(n);}}catch(e){}
+}
+
+function loadNoteEd(n){noteId=n.id;document.getElementById('ntitle').value=n.title||'';document.getElementById('nbody').value=n.body||'';}
+function loadNoteById(id){const n=notes.find(x=>x.id===id);if(n)loadNoteEd(n);}
+
+async function saveNote(){
+  const title=document.getElementById('ntitle').value||'Untitled',body=document.getElementById('nbody').value;
+  if(!noteId){await mkNote(title,body);return;}
+  try{await sbq('PATCH',`/rest/v1/notes?id=eq.${noteId}`,{title,body,updated_at:new Date().toISOString()});
+  const n=notes.find(x=>x.id===noteId);if(n){n.title=title;n.body=body;}
+  const btn=document.querySelector('.btn.pri');btn.textContent='✅ Saved!';setTimeout(()=>btn.textContent='💾 Save',1500);}catch(e){}
+}
+
+async function newNote(){await mkNote('New Note','');switchTab('notes');document.getElementById('ntitle').focus();}
+
+async function delNote(){
+  if(!noteId||!confirm('Delete this note?'))return;
+  try{await sbq('DELETE',`/rest/v1/notes?id=eq.${noteId}`,null);
+  notes=notes.filter(n=>n.id!==noteId);noteId=null;
+  if(notes.length>0)loadNoteEd(notes[0]);else{document.getElementById('ntitle').value='';document.getElementById('nbody').value='';}}catch(e){}
+}
+
+async function askNote(){
+  const title=document.getElementById('ntitle').value,body=document.getElementById('nbody').value;
+  const p=`My notes titled "${title}":\n\n${body}\n\nPlease help me understand, expand on, or summarise these.`;
+  switchTab('chat');addUserMsg(`Asking AI about: "${title}"`);hist.push({role:'user',content:p});
+  if(convId)sbq('POST','/rest/v1/messages',{conversation_id:convId,role:'user',content:p});
+  document.getElementById('send-btn').disabled=true;
+  const t=addAiMsg('',true);
+  try{const rep=await callClaude(hist);t.innerHTML=renderMd(rep);addMsgActions(lastAiEl.row,rep);hist.push({role:'assistant',content:rep});if(convId)sbq('POST','/rest/v1/messages',{conversation_id:convId,role:'assistant',content:rep});}
+  catch(e){t.textContent='⚠️ '+e.message;}
+  document.getElementById('send-btn').disabled=false;
+}
+
+// ── SEARCH ──
+async function doSearch(){
+  const q=document.getElementById('sinput').value.trim();if(!q)return;
+  const el=document.getElementById('sresults');
+  el.innerHTML='<div class="se"><div class="ic">⏳</div><p>Searching...</p></div>';
+  try{
+    const rep=await callClaude([{role:'user',content:`Please give a comprehensive, well-structured answer to: "${q}". Use markdown formatting with headers, bullet points and code if relevant.`}]);
+    const div=document.createElement('div');div.className='rc';
+    div.innerHTML=`<h3>✨ ${escHtml(q)}</h3><div class="rc-body">${renderMd(rep)}</div>`;
+    el.innerHTML='';el.appendChild(div);
+  }catch(e){el.innerHTML=`<div class="se"><div class="ic">⚠️</div><p>${e.message}</p></div>`;}
+}
+document.getElementById('sinput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+
+// ── SUPABASE HELPER ──
+async function sbq(method,path,body){
+  const opts={method,headers:SBH};
+  if(body&&method!=='DELETE')opts.body=JSON.stringify(body);
+  try{const r=await fetch(SB+path,opts);if(!r.ok)return null;return await r.json();}catch(e){return null;}
+}
+
+// ── START ──
+newConv().then(()=>{loadNotes();loadConvs();});
+</script>
+</body>
+</html>
