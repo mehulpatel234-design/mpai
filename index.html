@@ -201,7 +201,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   #tab-chat{padding-top:16px}
 }
 @media(max-width:767px){#sidebar{display:none}}
+#h-menu{background:none;border:none;color:var(--text2);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-right:4px;transition:background 0.15s;}
+#h-menu:active{background:var(--surface2)}
 ::-webkit-scrollbar{display:none}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(88px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(12px);background:var(--surface3);color:var(--text);padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;opacity:0;transition:all 0.25s;z-index:500;pointer-events:none;white-space:nowrap;border:1px solid var(--border2);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* MOBILE CONV PANEL */
+#conv-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:90;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+#conv-overlay.open{opacity:1;pointer-events:all}
+#conv-panel{position:fixed;top:0;left:0;bottom:0;width:min(300px,88vw);background:var(--surface);z-index:91;transform:translateX(-100%);transition:transform 0.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);}
+#conv-panel.open{transform:translateX(0)}
+#conv-ph{padding:16px 14px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
+#conv-ph-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+#conv-ph-top h2{font-size:17px;font-weight:700;color:var(--text)}
+#conv-pc{width:32px;height:32px;border-radius:8px;border:none;background:var(--surface2);color:var(--text2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+#conv-new{width:100%;padding:10px 12px;border-radius:12px;border:1px dashed var(--border2);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:7px;transition:all 0.15s;}
+#conv-new:active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+#conv-ps{padding:10px 14px;flex-shrink:0}
+#conv-ps input{width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg);color:var(--text);font-size:14px;font-family:inherit;outline:none;}
+#conv-ps input:focus{border-color:rgba(168,85,247,0.5)}
+#conv-ps input::placeholder{color:var(--text3)}
+#conv-pl{flex:1;overflow-y:auto;padding:4px 8px}
+.cvm{padding:10px;border-radius:10px;cursor:pointer;margin-bottom:1px;font-size:13px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all 0.15s;display:flex;align-items:center;gap:7px;}
+.cvm:active{background:var(--surface2);color:var(--text)}
+.cvm.active{background:var(--accent-dim);color:var(--accent)}
 
 /* LOCK SCREEN */
 #lock-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;padding-top:calc(40px + var(--safe-top));padding-bottom:calc(40px + var(--safe-bottom));}
@@ -265,7 +291,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- MOBILE HEADER -->
 <div id="header">
   <div id="header-left">
-    <div id="h-icon">M</div>
+    <button id="h-menu" onclick="openConvPanel()" title="Conversations">
+      <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <div id="h-title">MPAI</div>
   </div>
   <div id="header-right">
@@ -384,6 +412,26 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
 </div>
 
+<!-- MOBILE CONV PANEL -->
+<div id="conv-overlay" onclick="closeConvPanel()"></div>
+<div id="conv-panel">
+  <div id="conv-ph">
+    <div id="conv-ph-top">
+      <h2>Chats</h2>
+      <button id="conv-pc" onclick="closeConvPanel()">✕</button>
+    </div>
+    <button id="conv-new" onclick="closeConvPanel();newConv()">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Chat
+    </button>
+  </div>
+  <div id="conv-ps"><input id="conv-search" placeholder="Search conversations…" oninput="filterConvs(this.value)"/></div>
+  <div id="conv-pl"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
@@ -407,12 +455,17 @@ function getNow(){
 // ── MEMORY ──
 function getMems(){return JSON.parse(localStorage.getItem('mpai_memories')||'[]');}
 function setMems(m){localStorage.setItem('mpai_memories',JSON.stringify(m));}
+let _toastT=null;
+function showToast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.classList.add('show');if(_toastT)clearTimeout(_toastT);_toastT=setTimeout(()=>t.classList.remove('show'),3000);}
+function openConvPanel(){loadConvs();document.getElementById('conv-panel').classList.add('open');document.getElementById('conv-overlay').classList.add('open');}
+function closeConvPanel(){document.getElementById('conv-panel').classList.remove('open');document.getElementById('conv-overlay').classList.remove('open');}
 function addMemory(content){
   content=content.trim();if(!content)return;
   const m=getMems();
   if(m.some(x=>x.content.toLowerCase()===content.toLowerCase()))return;
   m.unshift({content,date:new Date().toISOString()});
   setMems(m);renderMemPanel();updateMemBadge();
+  showToast('💾 Memory saved');
 }
 function deleteMemory(i){const m=getMems();m.splice(i,1);setMems(m);renderMemPanel();updateMemBadge();}
 function addManualMemory(){const inp=document.getElementById('mem-input');addMemory(inp.value);inp.value='';}
@@ -576,7 +629,7 @@ function removeImg(){attached=null;document.getElementById('img-bar').style.disp
 
 // ── CONVERSATIONS ──
 async function newConv(){
-  hist=[];showWelcome();lastAiRow=null;
+  hist=[];showWelcome();lastAiRow=null;setHeaderTitle('New Chat');
   try{const d=await sbReq('POST','/rest/v1/conversations',{title:'New Chat'});convId=Array.isArray(d)?d[0]?.id:d?.id;loadConvs();}
   catch(e){convId=null;}
   switchTab('chat');
@@ -585,10 +638,14 @@ async function loadConvs(){
   try{const r=await fetch(SB+'/rest/v1/conversations?select=*&order=created_at.desc&limit=50',{headers:SBH});allConvs=await r.json();if(!Array.isArray(allConvs))allConvs=[];renderConvs(allConvs);}catch(e){}
 }
 function renderConvs(list){
-  const el=document.getElementById('conv-list');if(!el)return;
-  el.innerHTML=list.map(c=>`<div class="cv ${c.id===convId?'active':''}" onclick="loadConv('${c.id}')">💬 ${escH((c.title||'New Chat').slice(0,36))}</div>`).join('');
+  const rows=list.map(c=>{const t=escH((c.title||'New Chat').slice(0,36));const act=c.id===convId?' active':'';return{id:c.id,t,act};});
+  const el=document.getElementById('conv-list');
+  if(el)el.innerHTML=rows.map(r=>`<div class="cv${r.act}" onclick="loadConv('${r.id}')">💬 ${r.t}</div>`).join('');
+  const pl=document.getElementById('conv-pl');
+  if(pl)pl.innerHTML=rows.map(r=>`<div class="cvm${r.act}" onclick="loadConv('${r.id}');closeConvPanel()">💬 ${r.t}</div>`).join('');
 }
 function filterConvs(q){renderConvs(q?allConvs.filter(c=>(c.title||'').toLowerCase().includes(q.toLowerCase())):allConvs);}
+function setHeaderTitle(t){const el=document.getElementById('h-title');if(el)el.textContent=t||'MPAI';}
 async function loadConv(id){
   convId=id;hist=[];lastAiRow=null;
   try{const r=await fetch(SB+`/rest/v1/messages?conversation_id=eq.${id}&select=*&order=created_at.asc`,{headers:SBH});
@@ -596,7 +653,16 @@ async function loadConv(id){
     if(!Array.isArray(ms)||!ms.length){showWelcome();return;}
     ms.forEach(m=>{if(m.role==='user')addUserMsg(m.content);else addAiMsg(m.content,false);hist.push({role:m.role,content:m.content});});
   }catch(e){}
+  const conv=allConvs.find(c=>c.id===id);setHeaderTitle(conv?.title||'Chat');
   loadConvs();switchTab('chat');
+}
+async function resumeLastConv(){
+  try{
+    const r=await fetch(SB+'/rest/v1/conversations?select=*&order=created_at.desc&limit=1',{headers:SBH});
+    const list=await r.json();
+    if(Array.isArray(list)&&list.length){allConvs=list;await loadConv(list[0].id);loadConvs();return;}
+  }catch(e){}
+  newConv();
 }
 async function updTitle(id,t){try{await sbReq('PATCH',`/rest/v1/conversations?id=eq.${id}`,{title:t});loadConvs();}catch(e){}}
 
@@ -741,7 +807,7 @@ window.addEventListener('load',()=>{
 
 // ── INIT ──
 updateMemBadge();
-newConv().then(()=>{loadNotes();loadConvs();});
+resumeLastConv().then(()=>{loadNotes();loadConvs();});
 </script>
 </body>
 </html>
