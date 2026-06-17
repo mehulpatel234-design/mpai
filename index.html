@@ -52,13 +52,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .chip:active{background:var(--surface2);border-color:var(--accent);color:var(--text)}
 
 /* MESSAGES */
-.msg-group{padding:4px 16px;max-width:720px;margin:0 auto;width:100%}
+.msg-group{padding:4px 12px;margin:0 auto;width:100%;max-width:760px}
 .user-wrap{display:flex;justify-content:flex-end;margin-bottom:2px}
-.user-bubble{background:var(--user-bg);color:#fff;padding:11px 15px;border-radius:20px 20px 5px 20px;max-width:80%;font-size:15px;line-height:1.55;word-break:break-word;white-space:pre-wrap;}
-.ai-wrap{display:flex;align-items:flex-start;gap:10px;margin-bottom:4px}
-.ai-avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;flex-shrink:0;margin-top:2px;}
+.user-bubble{background:var(--user-bg);color:#fff;padding:11px 15px;border-radius:20px 20px 5px 20px;max-width:85%;font-size:15px;line-height:1.55;word-break:break-word;white-space:pre-wrap;}
+.ai-wrap{display:flex;align-items:flex-start;gap:8px;margin-bottom:4px}
+.ai-avatar{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0;margin-top:2px;}
 .ai-body{flex:1;min-width:0}
-.ai-name{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:5px;letter-spacing:0.3px;text-transform:uppercase}
+.ai-name{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:4px;letter-spacing:0.3px;text-transform:uppercase}
 .ai-text{font-size:15px;line-height:1.75;color:var(--text);word-break:break-word}
 .ai-text p{margin:6px 0}.ai-text p:first-child{margin-top:0}.ai-text p:last-child{margin-bottom:0}
 .ai-text h1,.ai-text h2,.ai-text h3{font-weight:600;margin:14px 0 6px;color:var(--text)}
@@ -202,9 +202,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 }
 @media(max-width:767px){#sidebar{display:none}}
 ::-webkit-scrollbar{display:none}
+
+/* LOCK SCREEN */
+#lock-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;padding-top:calc(40px + var(--safe-top));padding-bottom:calc(40px + var(--safe-bottom));}
+#lock-logo{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#fff;margin-bottom:20px;box-shadow:0 10px 36px rgba(168,85,247,0.4);}
+#lock-title{font-size:26px;font-weight:700;color:var(--text);margin-bottom:8px;letter-spacing:-0.5px}
+#lock-sub{font-size:15px;color:var(--text3);margin-bottom:48px;text-align:center;line-height:1.5}
+#lock-btn{padding:16px 36px;border-radius:16px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:10px;transition:all 0.15s;box-shadow:0 4px 20px rgba(168,85,247,0.4);}
+#lock-btn:active{background:var(--accent2);transform:scale(0.97)}
+#lock-btn-icon{font-size:22px}
+#lock-err{margin-top:20px;font-size:13px;color:#ef4444;text-align:center;display:none}
+#lock-skip{margin-top:24px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline;}
 </style>
 </head>
 <body>
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div id="lock-logo">M</div>
+  <div id="lock-title">MPAI</div>
+  <div id="lock-sub">Your private AI assistant.<br/>Unlock to continue.</div>
+  <button id="lock-btn" onclick="unlockApp()">
+    <span id="lock-btn-icon">🔒</span>
+    <span id="lock-btn-text">Unlock with Face ID</span>
+  </button>
+  <div id="lock-err">Authentication failed. Try again.</div>
+  <button id="lock-skip" onclick="skipLock()">Skip for now</button>
+</div>
+
 <div id="app">
 
 <!-- DESKTOP SIDEBAR -->
@@ -251,9 +275,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     </select>
     <button class="h-btn" onclick="openMemory()" title="Memory">
       🧠<span class="mem-badge" id="mem-count" style="display:none">0</span>
-    </button>
-    <button class="h-btn" onclick="newConv()" title="New chat">
-      <svg viewBox="0 0 24 24" style="width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
     </button>
   </div>
 </div>
@@ -532,7 +553,7 @@ async function regenLast(){
 function qs(t){document.getElementById('chat-input').value=t;checkSend();sendMsg();}
 function checkSend(){document.getElementById('send').disabled=!document.getElementById('chat-input').value.trim()&&!attached;}
 const ta=document.getElementById('chat-input');
-ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();}});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){e.preventDefault();sendMsg();}});
 ta.addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,140)+'px';checkSend();});
 
 // ── VOICE ──
@@ -627,6 +648,96 @@ async function sbReq(m,p,b){
   const o={method:m,headers:SBH};if(b&&m!=='DELETE')o.body=JSON.stringify(b);
   try{const r=await fetch(SB+p,o);if(!r.ok)return null;return await r.json();}catch(e){return null;}
 }
+
+// ── FACE ID / BIOMETRIC LOCK ──
+const CRED_KEY='mpai_cred_id';
+
+function dismissLock(){
+  const s=document.getElementById('lock-screen');
+  if(s){s.style.transition='opacity 0.3s';s.style.opacity='0';setTimeout(()=>s.remove(),300);}
+}
+
+function skipLock(){dismissLock();}
+
+function showLockErr(){
+  const e=document.getElementById('lock-err');
+  if(e){e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+}
+
+async function unlockApp(){
+  const btn=document.getElementById('lock-btn');
+  const txt=document.getElementById('lock-btn-text');
+  const icon=document.getElementById('lock-btn-icon');
+
+  if(!window.PublicKeyCredential){
+    // Device doesn't support WebAuthn — skip lock
+    dismissLock();return;
+  }
+
+  const supported=await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(()=>false);
+  if(!supported){dismissLock();return;}
+
+  const credId=localStorage.getItem(CRED_KEY);
+  btn.disabled=true;txt.textContent='Verifying…';icon.textContent='⏳';
+
+  try{
+    if(!credId){
+      // First time — register biometric
+      txt.textContent='Setting up Face ID…';
+      const chal=crypto.getRandomValues(new Uint8Array(32));
+      const uid=crypto.getRandomValues(new Uint8Array(16));
+      const cred=await navigator.credentials.create({publicKey:{
+        challenge:chal,
+        rp:{name:'MPAI',id:location.hostname},
+        user:{id:uid,name:'mehul',displayName:'Mehul'},
+        pubKeyCredParams:[{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+        authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},
+        timeout:60000
+      }});
+      const idB64=btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+      localStorage.setItem(CRED_KEY,idB64);
+      dismissLock();
+    } else {
+      // Authenticate with stored credential
+      const credIdBytes=Uint8Array.from(atob(credId),c=>c.charCodeAt(0));
+      const chal=crypto.getRandomValues(new Uint8Array(32));
+      await navigator.credentials.get({publicKey:{
+        challenge:chal,
+        allowCredentials:[{id:credIdBytes,type:'public-key'}],
+        userVerification:'required',
+        timeout:60000
+      }});
+      dismissLock();
+    }
+  }catch(err){
+    btn.disabled=false;
+    txt.textContent='Try Again';
+    icon.textContent='🔒';
+    showLockErr();
+  }
+}
+
+// Auto-trigger on load
+window.addEventListener('load',()=>{
+  const hasSupport=!!window.PublicKeyCredential;
+  if(!hasSupport){
+    // No biometric support — hide lock silently
+    document.getElementById('lock-screen')?.remove();return;
+  }
+  // Show lock, wait for user to tap
+  const credId=localStorage.getItem(CRED_KEY);
+  const txt=document.getElementById('lock-btn-text');
+  const icon=document.getElementById('lock-btn-icon');
+  if(!credId){
+    if(txt)txt.textContent='Set Up Face ID';
+    if(icon)icon.textContent='👤';
+  } else {
+    if(txt)txt.textContent='Unlock with Face ID';
+    if(icon)icon.textContent='🔒';
+    // Auto-trigger after short delay
+    setTimeout(()=>unlockApp(),600);
+  }
+});
 
 // ── INIT ──
 updateMemBadge();
