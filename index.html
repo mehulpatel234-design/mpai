@@ -125,6 +125,23 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .nbtn.primary:active{background:var(--accent2)}
 .nbtn.danger{color:#ef4444}
 
+/* VIDEO GENERATOR */
+#video-wrap{flex:1;display:flex;flex-direction:column;padding:16px;gap:14px;overflow-y:auto;max-width:720px;width:100%;margin:0 auto;-webkit-overflow-scrolling:touch;}
+.vhdr h2{font-size:20px;font-weight:700;color:var(--text);letter-spacing:-0.4px;margin-bottom:4px}
+.vhdr p{font-size:13px;color:var(--text3);line-height:1.5}
+#vid-input{min-height:140px;border:1px solid var(--border2);border-radius:12px;padding:13px 14px;font-size:15px;font-family:inherit;background:var(--surface);color:var(--text);resize:none;outline:none;line-height:1.6;}
+#vid-input:focus{border-color:rgba(168,85,247,0.5)}
+.vid-steps{display:flex;gap:8px;flex-wrap:wrap}
+.vid-step{flex:1;min-width:130px;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid var(--border2);background:var(--surface);}
+.vid-step-ic{width:26px;height:26px;border-radius:8px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:var(--text3);}
+.vid-step.done .vid-step-ic{background:var(--accent);color:#fff}
+.vid-step-label{font-size:12px;color:var(--text2);font-weight:600}
+.vid-step-sub{font-size:10px;color:var(--text3)}
+#vid-gen-btn{padding:13px 18px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:background 0.15s;}
+#vid-gen-btn:active{background:var(--accent2)}
+#vid-gen-btn:disabled{background:var(--surface3);color:var(--text3);cursor:not-allowed}
+#vid-status{font-size:12px;color:var(--text3);text-align:center;min-height:16px}
+
 /* SEARCH */
 #search-wrap{flex:1;display:flex;flex-direction:column;padding:20px 16px;gap:14px;overflow:hidden;max-width:720px;width:100%;margin:0 auto;}
 .shdr h2{font-size:20px;font-weight:700;color:var(--text);margin-bottom:3px;letter-spacing:-0.3px}
@@ -282,6 +299,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="sb-nav" onclick="switchTab('search')" id="sbn-search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
     </button>
+    <button class="sb-nav" onclick="switchTab('video')" id="sbn-video">
+      <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>Video
+    </button>
     <button class="sb-nav" onclick="openMemory()">
       <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Memory
     </button>
@@ -379,6 +399,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
     </div>
   </div>
+
+  <!-- VIDEO GENERATOR -->
+  <div id="tab-video" class="tab">
+    <div id="video-wrap">
+      <div class="vhdr">
+        <h2>🎬 Video Generator</h2>
+        <p>Describe a topic or paste a full script — MPAI will write it, voice it, find visuals, and assemble a finished video.</p>
+      </div>
+      <textarea id="vid-input" placeholder="Example: A 15-minute video explaining why the South China Sea is geopolitically important…&#10;&#10;(or paste a full script here)"></textarea>
+      <div class="vid-steps">
+        <div class="vid-step" id="vs-script"><div class="vid-step-ic">✍️</div><div><div class="vid-step-label">Script</div><div class="vid-step-sub">Claude writes it</div></div></div>
+        <div class="vid-step" id="vs-voice"><div class="vid-step-ic">🎙️</div><div><div class="vid-step-label">Voice</div><div class="vid-step-sub">ElevenLabs</div></div></div>
+        <div class="vid-step" id="vs-visuals"><div class="vid-step-ic">🖼️</div><div><div class="vid-step-label">Visuals</div><div class="vid-step-sub">Pexels/Pixabay</div></div></div>
+        <div class="vid-step" id="vs-render"><div class="vid-step-ic">🎞️</div><div><div class="vid-step-label">Render</div><div class="vid-step-sub">Shotstack</div></div></div>
+      </div>
+      <button id="vid-gen-btn" onclick="startVideoGen()">Generate Video</button>
+      <div id="vid-status"></div>
+    </div>
+  </div>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -391,6 +430,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </button>
   <button class="bnav-item" onclick="switchTab('search')" id="bn-search">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Search
+  </button>
+  <button class="bnav-item" onclick="switchTab('video')" id="bn-video">
+    <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>Video
   </button>
   <button class="bnav-item" onclick="openMemory()" id="bn-memory">
     <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Memory
@@ -523,6 +565,14 @@ function switchTab(t){
   document.querySelectorAll('.bnav-item,.sb-nav').forEach(x=>x.classList.remove('active'));
   const tab=document.getElementById('tab-'+t);if(tab)tab.classList.add('active');
   ['bn-'+t,'sbn-'+t].forEach(id=>{const b=document.getElementById(id);if(b)b.classList.add('active');});
+}
+
+// ── VIDEO GENERATOR (Step 1: shell only, pipeline wired in later steps) ──
+function startVideoGen(){
+  const v=document.getElementById('vid-input').value.trim();
+  if(!v){showToast('Type a topic or script first');return;}
+  document.getElementById('vid-status').textContent='Pipeline coming in the next steps — this just confirms the screen works!';
+  showToast('Video tab is live ✓');
 }
 
 // ── CLAUDE API ──
