@@ -629,7 +629,10 @@ async function sendMsg(){
   else content=text;
   addUserMsg(content,preview);hist.push({role:'user',content});
   const dbText=typeof content==='string'?content:(content.find?.(x=>x.type==='text')?.text||'[image]');
-  if(convId){sbReq('POST','/rest/v1/messages',{conversation_id:convId,role:'user',content:dbText});if(hist.length===1)updTitle(convId,dbText.slice(0,42));}
+  if(!convId){
+    try{const d=await sbReq('POST','/rest/v1/conversations',{title:dbText.slice(0,42)||'New Chat'});convId=Array.isArray(d)?d[0]?.id:d?.id;setHeaderTitle(dbText.slice(0,42)||'New Chat');loadConvs();}catch(e){}
+  }
+  if(convId)sbReq('POST','/rest/v1/messages',{conversation_id:convId,role:'user',content:dbText});
   const el=addAiMsg('',true);
   try{
     const rep=await callClaude(hist);
@@ -678,10 +681,8 @@ function handleImg(e){
 function removeImg(){attached=null;document.getElementById('img-bar').style.display='none';document.getElementById('file-in').value='';checkSend();}
 
 // ── CONVERSATIONS ──
-async function newConv(){
-  hist=[];showWelcome();lastAiRow=null;setHeaderTitle('New Chat');
-  try{const d=await sbReq('POST','/rest/v1/conversations',{title:'New Chat'});convId=Array.isArray(d)?d[0]?.id:d?.id;loadConvs();}
-  catch(e){convId=null;}
+function newConv(){
+  hist=[];showWelcome();lastAiRow=null;setHeaderTitle('MPAI');convId=null;
   switchTab('chat');
 }
 async function loadConvs(){
@@ -705,14 +706,6 @@ async function loadConv(id){
   }catch(e){}
   const conv=allConvs.find(c=>c.id===id);setHeaderTitle(conv?.title||'Chat');
   loadConvs();switchTab('chat');
-}
-async function resumeLastConv(){
-  try{
-    const r=await fetch(SB+'/rest/v1/conversations?select=*&order=created_at.desc&limit=1',{headers:SBH});
-    const list=await r.json();
-    if(Array.isArray(list)&&list.length){allConvs=list;await loadConv(list[0].id);loadConvs();return;}
-  }catch(e){}
-  newConv();
 }
 async function updTitle(id,t){try{await sbReq('PATCH',`/rest/v1/conversations?id=eq.${id}`,{title:t});loadConvs();}catch(e){}}
 
@@ -857,7 +850,7 @@ window.addEventListener('load',()=>{
 
 // ── INIT ──
 updateMemBadge();
-resumeLastConv().then(()=>{loadNotes();loadConvs();});
+newConv();loadNotes();loadConvs();
 </script>
 </body>
 </html>
