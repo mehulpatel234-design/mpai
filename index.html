@@ -148,6 +148,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #vid-gen-btn:active{transform:scale(0.98)}
 #vid-gen-btn:disabled{background:var(--surface3);color:var(--text3);cursor:not-allowed;box-shadow:none}
 #vid-status{font-size:12px;color:var(--text3);text-align:center;min-height:16px}
+#vid-script-box{display:flex;flex-direction:column;gap:8px;border:1px solid var(--border2);border-radius:14px;padding:14px;background:var(--surface);}
+.vid-script-hdr{display:flex;align-items:center;justify-content:space-between}
+#vid-script-meta{font-size:12px;color:var(--text2);font-weight:600}
+#vid-regen-btn{font-size:11px;color:var(--text3);background:var(--surface2);border:1px solid var(--border2);cursor:pointer;padding:5px 10px;border-radius:8px;font-family:inherit;transition:all 0.18s var(--ease);}
+#vid-regen-btn:active{background:var(--surface3);color:var(--text);transform:scale(0.95)}
+#vid-script-output{min-height:280px;max-height:420px;border:1px solid var(--border2);border-radius:10px;padding:12px 13px;font-size:14px;font-family:inherit;background:var(--bg);color:var(--text);resize:vertical;outline:none;line-height:1.65;-webkit-overflow-scrolling:touch;}
+#vid-script-output:focus{border-color:rgba(168,85,247,0.55);box-shadow:0 0 0 3px var(--accent-dim)}
 
 /* SEARCH */
 #search-wrap{flex:1;display:flex;flex-direction:column;padding:20px 16px;gap:14px;overflow:hidden;max-width:720px;width:100%;margin:0 auto;}
@@ -427,6 +434,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <button id="vid-gen-btn" onclick="startVideoGen()">Generate Video</button>
       <div id="vid-status"></div>
+      <div id="vid-script-box" style="display:none">
+        <div class="vid-script-hdr">
+          <span id="vid-script-meta">Script</span>
+          <button id="vid-regen-btn" onclick="startVideoGen()">↻ Regenerate</button>
+        </div>
+        <textarea id="vid-script-output" placeholder="Your script will appear here…"></textarea>
+      </div>
     </div>
   </div>
 </div>
@@ -578,12 +592,55 @@ function switchTab(t){
   ['bn-'+t,'sbn-'+t].forEach(id=>{const b=document.getElementById(id);if(b)b.classList.add('active');});
 }
 
-// ── VIDEO GENERATOR (Step 1: shell only, pipeline wired in later steps) ──
-function startVideoGen(){
+// ── VIDEO GENERATOR (Step 2: real script generation via Claude) ──
+const VIDEO_SCRIPT_SYS=`You are a professional scriptwriter for a faceless, voiceover-only YouTube channel covering geopolitics, history, and technology.
+
+Write narration meant to be read aloud by a text-to-speech voice — not a video plan, not bullet points, not stage directions.
+
+Rules:
+- Output ONLY the spoken narration. No headers, no "[Scene]" labels, no asterisks, no markdown symbols of any kind.
+- Open with a hook in the first 2-3 sentences that makes someone want to keep watching.
+- Write in clear, natural spoken English — short-to-medium sentences, easy to follow by ear, not by eye.
+- Structure the narration into logical sections with smooth spoken transitions (not headings).
+- End with a strong closing thought — not a generic "thanks for watching."
+- If the person gives you a topic or idea, write a complete script from scratch.
+- If the person pastes an existing draft script, lightly tighten and polish it for voiceover clarity while preserving their content and intent — don't rewrite it from scratch.
+- Unless the person specifies a target length, aim for roughly 1800-2200 words (about 12-15 minutes of spoken narration).`;
+
+async function callClaudeSystem(system,userText,opts={}){
+  const r=await fetch(FN,{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},body:JSON.stringify({messages:[{role:'user',content:userText}],system,model:opts.model||'claude-sonnet-4-6',max_tokens:opts.max_tokens||4096})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+r.status);}
+  const d=await r.json();return d.content?.[0]?.text||'';
+}
+
+function estimateRuntime(text){
+  const words=(text.trim().match(/\S+/g)||[]).length;
+  return {words,minutes:words/150};
+}
+
+async function startVideoGen(){
   const v=document.getElementById('vid-input').value.trim();
   if(!v){showToast('Type a topic or script first');return;}
-  document.getElementById('vid-status').textContent='Pipeline coming in the next steps — this just confirms the screen works!';
-  showToast('Video tab is live ✓');
+  const btn=document.getElementById('vid-gen-btn');
+  const statusEl=document.getElementById('vid-status');
+  const scriptStep=document.getElementById('vs-script');
+  btn.disabled=true;btn.textContent='Writing script…';
+  statusEl.textContent='Claude is writing your script — this can take 15-30 seconds for a full-length script.';
+  scriptStep.classList.remove('done');
+  try{
+    const script=await callClaudeSystem(VIDEO_SCRIPT_SYS,v,{max_tokens:4096});
+    document.getElementById('vid-script-output').value=script;
+    document.getElementById('vid-script-box').style.display='flex';
+    scriptStep.classList.add('done');
+    const {words,minutes}=estimateRuntime(script);
+    document.getElementById('vid-script-meta').textContent=`📝 Script — ${words} words · ~${minutes.toFixed(1)} min narrated`;
+    statusEl.textContent='Script ready. Voiceover (Step 3) comes next.';
+    showToast('Script generated ✓');
+  }catch(e){
+    statusEl.textContent='⚠️ '+e.message;
+    showToast('Script generation failed');
+  }
+  btn.disabled=false;btn.textContent='Generate Video';
 }
 
 // ── CLAUDE API ──
